@@ -317,7 +317,7 @@
       `;
       this._wrapper.appendChild(wireframe);
 
-      // Glass container — filter applied HERE instead of on the canvas for Safari compatibility
+      // Glass container
       this._glass = document.createElement('div');
       Object.assign(this._glass.style, {
         position: 'absolute', top: '40px', left: '0',
@@ -326,15 +326,16 @@
         boxShadow: 'inset 0 0 20px rgba(120, 220, 255, 0.05)',
         clipPath: 'polygon(40% 0%, 60% 0%, 88.88% 100%, 11.11% 100%)',
         WebkitClipPath: 'polygon(40% 0%, 60% 0%, 88.88% 100%, 11.11% 100%)',
-        zIndex: '2',
-        filter: `url(#ll-goo-${this._id})`,
-        WebkitFilter: `url(#ll-goo-${this._id})`
+        zIndex: '2'
       });
 
-      // Lava canvas
+      // Lava canvas — goo filter applied here for smooth blob merging
       this._canvas = document.createElement('canvas');
+      const filterRef = `url(#ll-goo-${this._id})`;
       Object.assign(this._canvas.style, {
-        display: 'block', width: '100%', height: '100%'
+        display: 'block', width: '100%', height: '100%',
+        filter: filterRef,
+        WebkitFilter: filterRef
       });
       this._ctx = this._canvas.getContext('2d');
       this._glass.appendChild(this._canvas);
