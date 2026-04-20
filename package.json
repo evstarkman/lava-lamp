@@ -1,0 +1,12 @@
+{
+  "name": "lava-lamp",
+  "version": "1.0.0",
+  "description": "A self-contained, physics-driven lava lamp component with volumetric lighting and dynamic text illumination.",
+  "main": "lava-lamp.js",
+  "keywords": ["lava-lamp", "physics", "canvas", "animation", "webgl-free"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
