@@ -116,10 +116,11 @@
       ctx.closePath();
     }
 
-    drawLightEmit(glowCtx, wrapperX, wrapperY, colorRGB) {
-      const globalX = wrapperX + this.x;
-      const globalY = wrapperY + 40 + this.y;
-      const castRadius = this.baseRadius * (12 + (this.temperature * 8));
+    drawLightEmit(glowCtx, wrapperX, wrapperY, colorRGB, s) {
+      s = s || 1;
+      const globalX = wrapperX + this.x * s;
+      const globalY = wrapperY + 40 * s + this.y * s;
+      const castRadius = this.baseRadius * (12 + (this.temperature * 8)) * s;
       const heatAlpha = 0.01 + (this.temperature * 0.12);
 
       const radGrad = glowCtx.createRadialGradient(globalX, globalY, 0, globalX, globalY, castRadius);
@@ -404,9 +405,10 @@
 
     // --- Private: raycasting ---
 
-    _castDynamicLight(ctx, lx, ly, radius, alpha, wrapperX, wrapperY) {
-      const capL = { x: wrapperX + 72, y: wrapperY + 40 };
-      const capR = { x: wrapperX + 108, y: wrapperY + 40 };
+    _castDynamicLight(ctx, lx, ly, radius, alpha, wrapperX, wrapperY, s) {
+      s = s || 1;
+      const capL = { x: wrapperX + 72 * s, y: wrapperY + 40 * s };
+      const capR = { x: wrapperX + 108 * s, y: wrapperY + 40 * s };
 
       const project = (p) => ({
         x: p.x + (p.x - lx) * 10000,
@@ -458,7 +460,7 @@
       ctx.clearRect(0, 0, w, h);
 
       const hasGlow = this._opts.glowEnabled && this._glowCtx;
-      let glowCtx, glowW, glowH, wrapperX, wrapperY;
+      let glowCtx, glowW, glowH, wrapperX, wrapperY, s;
 
       if (hasGlow) {
         glowCtx = this._glowCtx;
@@ -475,9 +477,12 @@
         wrapperX = wrapperRect.left - sceneRect.left;
         wrapperY = wrapperRect.top - sceneRect.top;
 
-        const bulbX = wrapperX + 90;
-        const bulbY = wrapperY + 300;
-        this._castDynamicLight(glowCtx, bulbX, bulbY, 120, 0.05, wrapperX, wrapperY);
+        // Detect CSS transform scale by comparing rendered size to intended size
+        s = wrapperRect.width / this._opts.width;
+
+        const bulbX = wrapperX + 90 * s;
+        const bulbY = wrapperY + 300 * s;
+        this._castDynamicLight(glowCtx, bulbX, bulbY, 120 * s, 0.05, wrapperX, wrapperY, s);
       }
 
       // Blob-to-blob repulsion
@@ -517,25 +522,28 @@
       ctx.fill();
       ctx.closePath();
 
+      // Scale factor for coordinate projection (default 1 if no glow)
+      const sf = s || 1;
+
       // Update and draw blobs, emit light, set CSS variables
       blobs.forEach((blob, i) => {
         blob.update(w, h, dt);
         blob.draw(ctx);
 
         if (hasGlow) {
-          blob.drawLightEmit(glowCtx, wrapperX, wrapperY, this._colorRGB);
+          blob.drawLightEmit(glowCtx, wrapperX, wrapperY, this._colorRGB, sf);
           this._castDynamicLight(glowCtx,
-            wrapperX + blob.x, wrapperY + 40 + blob.y,
-            blob.baseRadius * (15 + (blob.temperature * 10)),
+            wrapperX + blob.x * sf, wrapperY + 40 * sf + blob.y * sf,
+            blob.baseRadius * (15 + (blob.temperature * 10)) * sf,
             0.002 + (blob.temperature * 0.015),
-            wrapperX, wrapperY
+            wrapperX, wrapperY, sf
           );
         }
 
         // CSS variable injection for reveal system
-        const globalX = (hasGlow ? wrapperX : 0) + blob.x;
-        const globalY = (hasGlow ? wrapperY + 40 : 0) + blob.y;
-        const trackingRadius = blob.baseRadius * (10 + (blob.temperature * 8));
+        const globalX = (hasGlow ? wrapperX : 0) + blob.x * sf;
+        const globalY = (hasGlow ? wrapperY + 40 * sf : 0) + blob.y * sf;
+        const trackingRadius = blob.baseRadius * (10 + (blob.temperature * 8)) * sf;
         const fontAlpha = Math.min(0.40, 0.05 + (blob.temperature * 0.25));
 
         document.body.style.setProperty(`--b${i}x`, `${globalX}px`);
@@ -556,14 +564,14 @@
           massY += b.y * b.temperature;
           massCount += b.temperature;
         });
-        const opticalX = wrapperX + (massX / massCount);
-        const opticalY = wrapperY + 40 + (massY / massCount);
+        const opticalX = wrapperX + (massX / massCount) * sf;
+        const opticalY = wrapperY + 40 * sf + (massY / massCount) * sf;
 
         glowCtx.fillStyle = 'rgba(0,0,0,0.85)';
 
         // Cap shadow
-        const capLeft = { x: wrapperX + 72, y: wrapperY + 40 };
-        const capRight = { x: wrapperX + 108, y: wrapperY + 40 };
+        const capLeft = { x: wrapperX + 72 * sf, y: wrapperY + 40 * sf };
+        const capRight = { x: wrapperX + 108 * sf, y: wrapperY + 40 * sf };
         const capProjL = { x: capLeft.x + (capLeft.x - opticalX) * 50, y: capLeft.y + (capLeft.y - opticalY) * 50 };
         const capProjR = { x: capRight.x + (capRight.x - opticalX) * 50, y: capRight.y + (capRight.y - opticalY) * 50 };
 
@@ -576,8 +584,8 @@
         glowCtx.fill();
 
         // Base shadow
-        const baseLeft = { x: wrapperX + 20, y: wrapperY + 300 };
-        const baseRight = { x: wrapperX + 160, y: wrapperY + 300 };
+        const baseLeft = { x: wrapperX + 20 * sf, y: wrapperY + 300 * sf };
+        const baseRight = { x: wrapperX + 160 * sf, y: wrapperY + 300 * sf };
         const baseProjL = { x: baseLeft.x + (baseLeft.x - opticalX) * 50, y: baseLeft.y + (baseLeft.y - opticalY) * 50 };
         const baseProjR = { x: baseRight.x + (baseRight.x - opticalX) * 50, y: baseRight.y + (baseRight.y - opticalY) * 50 };
 
