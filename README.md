@@ -53,7 +53,7 @@ A self-contained, physics-driven lava lamp component with real-time volumetric l
     <div id="lamp"></div>
   </div>
 
-  <script src="lava-lamp.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/evstarkman/lava-lamp@latest/lava-lamp.js"></script>
   <script>
     const lamp = new LavaLamp(document.getElementById('lamp'), {
       color: '#5ac8e8'
@@ -71,27 +71,19 @@ A self-contained, physics-driven lava lamp component with real-time volumetric l
 ### CDN (jsdelivr)
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/YOUR_USERNAME/lava-lamp@latest/lava-lamp.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/evstarkman/lava-lamp@latest/lava-lamp.js"></script>
 ```
 
 ### Local
 
-Download `lava-lamp.js` and include it directly:
+Clone the repository and include the file directly:
+
+```bash
+git clone https://github.com/evstarkman/lava-lamp.git
+```
 
 ```html
 <script src="path/to/lava-lamp.js"></script>
-```
-
-### npm
-
-```bash
-npm install lava-lamp
-```
-
-```js
-const LavaLamp = require('lava-lamp');
-// or
-import LavaLamp from 'lava-lamp';
 ```
 
 ---
