@@ -36,43 +36,43 @@
       this.temperature = 0;
     }
 
-    update(width, height) {
-      this.cycle++;
+    update(width, height, dt) {
+      this.cycle += dt;
 
-      if (this.x < this.baseRadius + 10) this.vx += 0.001;
-      if (this.x > width - this.baseRadius - 10) this.vx -= 0.001;
-      this.x += this.vx;
+      if (this.x < this.baseRadius + 10) this.vx += 0.001 * dt;
+      if (this.x > width - this.baseRadius - 10) this.vx -= 0.001 * dt;
+      this.x += this.vx * dt;
 
       if (this.state === 'bottom') {
         this.vy = 0;
-        this.y += (height - 20 - this.y) * 0.01;
-        this.temperature += Math.random() * 0.005;
-        if (Math.random() < 0.0005 && this.cycle > 1200 && this.temperature > 0.8) {
+        this.y += (height - 20 - this.y) * 0.01 * dt;
+        this.temperature += Math.random() * 0.005 * dt;
+        if (Math.random() < 0.0005 * dt && this.cycle > 1200 && this.temperature > 0.8) {
           this.state = 'rising';
           this.cycle = 0;
         }
       } else if (this.state === 'rising') {
-        this.vy -= 0.0008;
+        this.vy -= 0.0008 * dt;
         if (this.vy < -0.15) this.vy = -0.15;
-        this.y += this.vy;
+        this.y += this.vy * dt;
         this.temperature = 1;
         if (this.y < this.baseRadius + 20) {
           this.state = 'top';
           this.cycle = 0;
         }
       } else if (this.state === 'top') {
-        this.vy *= 0.96;
-        this.y += this.vy;
-        this.temperature -= 0.003;
-        if (Math.random() < 0.001 && this.cycle > 800 && this.temperature < 0.2) {
+        this.vy *= Math.pow(0.96, dt);
+        this.y += this.vy * dt;
+        this.temperature -= 0.003 * dt;
+        if (Math.random() < 0.001 * dt && this.cycle > 800 && this.temperature < 0.2) {
           this.state = 'falling';
           this.cycle = 0;
         }
       } else if (this.state === 'falling') {
-        this.vy += 0.0008;
+        this.vy += 0.0008 * dt;
         if (this.vy > 0.18) this.vy = 0.18;
-        this.y += this.vy;
-        this.temperature -= 0.005;
+        this.y += this.vy * dt;
+        this.temperature -= 0.005 * dt;
         if (this.y > height - 30) {
           this.state = 'bottom';
           this.cycle = 0;
@@ -96,16 +96,16 @@
         }
       }
 
-      this.rx += (targetRx - this.rx) * 0.03;
-      this.ry += (targetRy - this.ry) * 0.03;
+      this.rx += (targetRx - this.rx) * 0.03 * dt;
+      this.ry += (targetRy - this.ry) * 0.03 * dt;
 
       const leftX = 72 + this.y * (-52 / 260);
       const rightX = 108 + this.y * (52 / 260);
       const distL = this.x - leftX;
       const distR = rightX - this.x;
       const glassPadding = this.rx * 1.1;
-      if (distL < glassPadding) this.vx += (glassPadding - distL) * 0.0004;
-      if (distR < glassPadding) this.vx -= (glassPadding - distR) * 0.0004;
+      if (distL < glassPadding) this.vx += (glassPadding - distL) * 0.0004 * dt;
+      if (distR < glassPadding) this.vx -= (glassPadding - distR) * 0.0004 * dt;
     }
 
     draw(ctx) {
@@ -163,6 +163,7 @@
       this._revealedElements = new Set();
       this._revealStyleTag = null;
       this._destroyed = false;
+      this._lastFrameTime = 0;
 
       this._buildDOM();
       this._resize();
@@ -315,7 +316,7 @@
       `;
       this._wrapper.appendChild(wireframe);
 
-      // Glass container
+      // Glass container — filter applied HERE instead of on the canvas for Safari compatibility
       this._glass = document.createElement('div');
       Object.assign(this._glass.style, {
         position: 'absolute', top: '40px', left: '0',
@@ -323,14 +324,16 @@
         background: 'rgba(0, 5, 10, 0.3)',
         boxShadow: 'inset 0 0 20px rgba(120, 220, 255, 0.05)',
         clipPath: 'polygon(40% 0%, 60% 0%, 88.88% 100%, 11.11% 100%)',
-        zIndex: '2'
+        WebkitClipPath: 'polygon(40% 0%, 60% 0%, 88.88% 100%, 11.11% 100%)',
+        zIndex: '2',
+        filter: `url(#ll-goo-${this._id})`,
+        WebkitFilter: `url(#ll-goo-${this._id})`
       });
 
       // Lava canvas
       this._canvas = document.createElement('canvas');
       Object.assign(this._canvas.style, {
-        display: 'block', width: '100%', height: '100%',
-        filter: `url(#ll-goo-${this._id})`
+        display: 'block', width: '100%', height: '100%'
       });
       this._ctx = this._canvas.getContext('2d');
       this._glass.appendChild(this._canvas);
@@ -442,6 +445,12 @@
     _animate() {
       if (this._destroyed) return;
 
+      // Delta-time: normalize to 60fps (16.67ms per frame)
+      const now = performance.now();
+      const elapsed = this._lastFrameTime ? (now - this._lastFrameTime) : 16.67;
+      this._lastFrameTime = now;
+      const dt = Math.min(elapsed / 16.67, 3); // Clamp to prevent physics explosion after tab suspend
+
       const ctx = this._ctx;
       const w = this._canvasWidth;
       const h = this._canvasHeight;
@@ -510,7 +519,7 @@
 
       // Update and draw blobs, emit light, set CSS variables
       blobs.forEach((blob, i) => {
-        blob.update(w, h);
+        blob.update(w, h, dt);
         blob.draw(ctx);
 
         if (hasGlow) {
